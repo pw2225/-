@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電子記帳本</title>
+    <style>
+        /* 基礎全域設定，還原你截圖中的柔和配色 */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f4ef;
+            /* 背景米白色 */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #f5f4ef;
+        }
+
+        /* 頂部頁籤 (Tab) 設計 */
+        .tabs {
+            display: flex;
+            background-color: #eae8e1;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 0;
+            text-align: center;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            background-color: #fff;
+            color: #333;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            border: 2px solid #e0af65;
+            /* 截圖中的橘黃色邊框 */
+        }
+
+        /* 內容區塊隱藏與顯示 */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 卡片共用樣式 */
+        .card {
+            background-color: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            border: 1px solid #eae8e1;
+        }
+
+        /* --- 1. 新增表單區 (對應截圖1) --- */
+        .type-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .type-btn.active {
+            font-weight: bold;
+            border-color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #eae8e1;
+            background-color: #f5f4ef;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* --- 2. 帳目明細區 (對應截圖2) --- */
+        .summary-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-box {
+            flex: 1;
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #eae8e1;
+        }
+
+        .summary-title {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .income-text {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .expense-text {
+            font-size: 20px;
+            font-weight: bold;
+            color: #b74b33;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .record-item:last-child {
+            border-bottom: none;
+        }
+
+        .record-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-food {
+            background-color: #c96b4e;
+        }
+
+        .dot-transport {
+            background-color: #558ee6;
+        }
+
+        .record-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin: 0 0 4px 0;
+        }
+
+        .record-sub {
+            font-size: 12px;
+            color: #888;
+            margin: 0;
+        }
+
+        /* --- 3. 統計與預算區 (對應截圖3) --- */
+        .month-selector {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            margin-bottom: 20px;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            background-color: #eae8e1;
+            border-radius: 4px;
+            height: 8px;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .progress-marker {
+            position: absolute;
+            top: 50%;
+            width: 40px;
+            height: 40px;
+            border-radius: 70%;
+            object-fit: cover;
+            transform: translate(-50%, -50%);
+            transition: left 0.3s ease;
+        }
+
+        /* 更新 */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f4ef;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #f5f4ef;
+        }
+
+        .tabs {
+            display: flex;
+            background-color: #eae8e1;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            background: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background-color: #fff;
+            border-radius: 10px;
+            border: 2px solid #e0af65;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background-color: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .expense-text {
+            color: #b74b33;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('list')">帳目</button>
+            <button class="tab-btn" onclick="switchTab('add')">新增</button>
+            <button class="tab-btn" onclick="switchTab('stats'); loadStats();">統計</button>
+        </div>
+
+        <div id="add" class="tab-content card">
+            <form id="recordForm">
+                <div class="form-group"><label>金額</label><input type="number" name="amount" class="form-control"
+                        required></div>
+                <label for="category-select">類別：</label>
+                <select id="category-select" name="category_id" required>
+                    <option value="">請選擇類別</option>
+                </select>
+                <div class="form-group"><label>日期</label><input type="date" name="date" class="form-control" required>
+                </div>
+                <div class="form-group"><label>備註</label><input type="text" name="note" class="form-control"></div>
+                <button type="submit" class="submit-btn">儲存</button>
+            </form>
+        </div>
+
+        <div id="list" class="tab-content">
+            <div class="summary-row">
+                <div class="summary-box">
+                    <div class="summary-title">本月收入</div>
+                    <div class="income-text" id="summary-income">+$0</div>
+                </div>
+                <div class="summary-box">
+                    <div class="summary-title">本月支出</div>
+                    <div class="expense-text" id="summary-expense">-$0</div>
+                </div>
+            </div>
+            <div class="summary-row">
+                <div class="summary-box" style="flex:1;">
+                    <div class="summary-title">本月結餘</div>
+                    <div id="summary-balance" style="font-size:20px; font-weight:bold;">$0</div>
+                </div>
+            </div>
+            <div id="record-list">
+            </div>
+        </div>
+
+        
+
+        <div id="stats" class="tab-content">
+            <div class="card">
+                <input type="month" id="stats-month" class="form-control" style="margin-bottom:15px;">
+                <canvas id="statsChart" height="200"></canvas>
+            </div>
+            <div id="stats-container" class="card"></div>
+        </div>
+    </div>
+
+    <script>
+        // 切換分頁邏輯
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            if (tabId === 'list') { loadRecords(); loadSummary(); } // 切換分頁時自動刷新
+        }
+
+        // 1. 載入資料 (GET)
+        async function loadRecords() {
+            const res = await fetch('/api/records');
+            const data = await res.json();
+
+            const listContainer = document.getElementById('record-list');
+            listContainer.innerHTML = ''; // 清空
+
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                <div class="card record-item">
+                    <div><p style="margin:0; font-weight:bold">${item.note}</p><p style="margin:0; font-size:12px; color:#888">${item.category ? item.category + ' ・ ' : ''}${item.date}</p></div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div class="expense-text">-$${item.amount}</div>
+                        <button onclick="deleteRecord(${item.id})" style="border:none; background:none; color:#b74b33; font-size:18px; cursor:pointer; padding:4px;">🗑️</button>
+                    </div>
+                </div>
+            `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        // 3. 刪除資料 (DELETE)
+        async function deleteRecord(id) {
+            if (!confirm('確定要刪除這筆紀錄嗎？')) return;
+            try {
+                const res = await fetch(`/api/records/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('刪除失敗');
+                loadRecords(); // 刷新列表
+                loadSummary(); // 刷新摘要
+            } catch (err) {
+                console.error('刪除失敗:', err);
+                alert('刪除失敗，請稍後再試。');
+            }
+        }
+
+        // 2. 儲存資料 (POST)
+        document.getElementById('recordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            await fetch('/add-record', {
+                method: 'POST',
+                body: new URLSearchParams(formData)
+            });
+            alert('新增成功！');
+            loadRecords(); // 刷新列表
+            loadSummary(); // 刷新摘要
+            switchTab('list'); // 跳轉回列表
+        });
+
+        loadRecords(); // 頁面載入時先執行一次
+
+        // 載入本月收入/支出/結餘摘要
+        async function loadSummary() {
+            try {
+                const res = await fetch('/api/summary');
+                const data = await res.json();
+
+                document.getElementById('summary-income').textContent = `+$${data.income}`;
+                document.getElementById('summary-expense').textContent = `-$${data.expense}`;
+
+                const balanceEl = document.getElementById('summary-balance');
+                const balance = data.balance;
+                balanceEl.textContent = (balance >= 0 ? '+$' : '-$') + Math.abs(balance);
+                balanceEl.style.color = balance >= 0 ? '#2e7d32' : '#b74b33';
+            } catch (err) {
+                console.error('讀取摘要失敗:', err);
+            }
+        }
+
+        loadSummary(); // 頁面載入時先執行一次
+
+        // 渲染統計頁面
+
+        let statsChartInstance = null;
+
+        async function loadStats() {
+            const month = document.getElementById('stats-month').value; // "2026-06"
+            const url = month ? `/api/stats?month=${month}` : '/api/stats';
+            const statsContainer = document.getElementById('stats-container');
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!data.stats || data.stats.length === 0) {
+                    statsContainer.innerHTML = '<p>目前沒有資料。</p>';
+                    if (statsChartInstance) statsChartInstance.destroy();
+                    return;
+                }
+
+                // --- 畫圖表（花費 vs 預算）---
+                const labels = data.stats.map(s => s.category);
+                const actuals = data.stats.map(s => s.total);
+                const budgets = data.stats.map(s => s.budget || 0);
+
+                if (statsChartInstance) statsChartInstance.destroy();
+                const ctx = document.getElementById('statsChart').getContext('2d');
+                statsChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: '實際花費', data: actuals, backgroundColor: '#b74b33' },
+                            { label: '預算', data: budgets, backgroundColor: '#e0af65' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'top' } }
+                    }
+                });
+
+                // --- 畫進度條（每個類別花費佔預算的百分比）---
+                statsContainer.innerHTML = '<h3>各類別花費 / 預算</h3>';
+                data.stats.forEach(item => {
+                    const percent = item.budget ? Math.min((item.total / item.budget) * 100, 100) : 0;
+                    const overBudget = item.budget && item.total > item.budget;
+
+                    const div = document.createElement('div');
+                    div.className = 'stat-item';
+                    div.innerHTML = `
+                <div class="stat-header">
+                    <span>${item.category}</span>
+                    <span>$${item.total} ${item.budget ? '/ $' + item.budget : '(未設預算)'}</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width:${percent}%; background-color:${overBudget ? '#b74b33' : '#e0af65'};"></div>
+                    <img src="/jisung-y.png" class="progress-marker" style="left:${percent}%;">
+                </div>
+            `;
+                    statsContainer.appendChild(div);
+                });
+
+            } catch (err) {
+                console.error('撈取失敗:', err);
+            }
+        }
+
+        // 載入統計資料（包含預算）
+
+        // 月份切換時自動重新整理圖表
+        document.getElementById('stats-month').addEventListener('change', loadStats);
+ 
+        // 載入統計資料（包含預算）
+ 
+        // 頁面載入時，自動抓取類別並放入下拉選單
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories');
+                const categories = await response.json();
+ 
+                const select = document.getElementById('category-select');
+ 
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;    // 傳給後端的 ID
+                    option.textContent = cat.name; // 給使用者看的名稱
+                    select.appendChild(option);
+                });
+            } catch (err) {
+                console.error('抓取類別失敗:', err);
+            }
+        }
+ 
+        // 確保網頁載入時執行
+        document.addEventListener('DOMContentLoaded', loadCategories);
+ 
+        // 統計分頁的月份選擇器預設為當前月份
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('stats-month').value = `${yyyy}-${mm}`;
+        });
+ 
+    </script>
+</body>
+ 
+</html>
