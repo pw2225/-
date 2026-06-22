@@ -1,0 +1,17 @@
+{
+  "name": "electronic-ledger",
+  "version": "1.0.0",
+  "description": "電子記帳本",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7"
+  }
+}
